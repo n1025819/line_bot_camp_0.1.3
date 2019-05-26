@@ -1,0 +1,212 @@
+<html>
+  <head>
+	<!--標籤-->
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<!--src屬性、jquery連接函式庫、簡單基礎函式庫、integrity確認安全性、crossorigin不发送用户憑據-->
+    <script src="https://code.jquery.com/jquery-3.4.0.min.js" integrity="sha256-BJeo0qm959uMBGb65z40ejJYGSgR7REI4+CW1fNKwOg=" crossorigin="anonymous"></script>
+	<!--line-scdn連接函式庫，line-->
+    <script src="https://d.line-scdn.net/liff/1.0/sdk.js"></script>
+	<!--line-mqcdn連接函式庫，地圖-->
+    <script src="https://api.mqcdn.com/sdk/mapquest-js/v1.3.2/mapquest.js"></script>
+	<!--初始化連接、rel="stylesheet"連接，-->
+    <link type="text/css" rel="stylesheet" href="https://api.mqcdn.com/sdk/mapquest-js/v1.3.2/mapquest.css"/>
+	
+    <script type="text/javascript">
+		<!--liff-data-->
+        $(function () {
+            liff.init(function (data) {
+                userId = data.context.userId;
+                L.mapquest.key = 'lYrP4vF3Uk5zgTiGGuEzQGwGIVDGuy24';
+                camp_data = null;
+				//群體註解，/*
+                /*
+                $.getJSON('/get_user_recommand', {
+                    userId: userId
+                }, function(data) {
+                    camp_data = data
+                });
+                */
+				
+				//
+                $.ajax({
+                    dataType: "json",
+                    url: "/get_user_recommand",
+                    data: {"userId": userId},
+                    async: false,
+                    success: function(data) {
+                        camp_data = data
+                    }
+                });
+				
+                //alert警戒(camp_data);
+                makers = []
+                for (i = 0, ii = camp_data["camp_title"].length; i < ii; i++){
+                    //alert(camp_data["camp_title"][i] + "," + camp_data["latlong"][i][0] + "," + camp_data["latlong"][i][1])
+					//取出名稱、經緯度
+                    maker = {
+                        name: camp_data["camp_title"][i],
+                        location: {
+                            lat: camp_data["latlong"][i][0],
+                            lng: camp_data["latlong"][i][1]
+                        },
+						google_map:camp_data["google_map_url"][i]
+						
+                    };
+					//加到上方list
+                    makers.push(maker);
+                }
+				//創造一個地圖
+                createMap();
+
+                function createMap() {
+                  //初使化Initialize the Map
+				  //
+                  var map = L.mapquest.map('map', {
+                    layers: L.mapquest.tileLayer('map'),
+                    center: camp_data["latlong"][0],
+                    zoom: 5})
+
+                  // Generate the feature group containing markers from the geocoded locations
+                  /*
+                  makers = [
+                    {name: "基隆七堵_朱比特咖啡", location: {lat: 25.133259, lng: 121.671722}}
+                    , {name: "台北市北投_貴子坑露營場", location: {lat: 25.157111, lng: 121.54719}}
+                    , {name: "台北市北投_陽明山童軍苗圃營地", location: {lat: 25.151951, lng: 121.558506}}
+                  ];
+                  */
+                  
+                  var featureGroup = generateMarkersFeatureGroup(makers);
+
+                  // Add markers to the map and zoom to the features
+                  featureGroup.addTo(map);
+                  map.fitBounds(featureGroup.getBounds());
+                }
+
+                function generateMarkersFeatureGroup(makers) {
+                  var group = [];
+                  for (var i = 0; i < makers.length; i++) {
+                    var ranking = ["[::text:]第一名","[::text:]第二名","[::text:]第三名"][i]
+					var ranking_number = ["1.","2.","3."][i]
+                    var camp_title = makers[i]["name"]
+					var google_map_url = makers[i]["google_map"]
+					
+                    var locationLatLng = makers[i]["location"];
+
+                    // Create a marker for each location
+                    //var marker = L.marker(locationLatLng, {icon: L.mapquest.icons.marker()})
+                    //  .bindPopup(camp_title);
+                    var marker = L.mapquest.textMarker(locationLatLng, {
+					  //定義釘點資訊、超連結網址、營地名稱
+					  text: "<span style='font-size:20px;' class='mybtn' data-href='"+ ranking +"'>" + ranking_number + camp_title +"</span>",
+                      //text: "<span style='font-size:20px;' class='mybtn' data-href='"+ google_map_url +"'>" + camp_title + "</span>",
+                      //subtext: "<a href='javascript:void(0);' class='mybtn' data-href='http://yahoo.com.tw'><span style='font-size:20px;'>click me</span></a>",
+					  //subtext: "<a href='http://yahoo.com.tw' >click me</a>",
+                      position: 'right',
+                      type: 'marker',
+                      icon: {
+                        primaryColor: '#333333',
+                        secondaryColor: '#333333',
+                        size: 'sm'
+                      }
+                    });
+
+                    group.push(marker);
+                  }
+                  return L.featureGroup(group);
+                }
+            });
+			//
+			$(document).on( 'click', '.mybtn', function(){
+				myurl = $(this).attr("data-href");
+				alert("myurl = " + myurl);
+				try{
+					liff.sendMessages([
+					 {
+						 type: 'text',
+						 text: myurl
+					 }
+					])
+				   .then(() => {
+					   //alert('done');
+				   })
+				}catch(e){
+					alert("Error: e");
+				}
+			});
+			$(document).on( 'click', '.mybtn1', function(){
+				myurlaaa = $(this).attr("data-href-1");
+				alert("顯示模式 = " + myurlaaa);
+				try{
+					liff.sendMessages([
+					 {
+						 type: 'text',
+						 text: myurlaaa
+					 }
+					])
+				   .then(() => {
+					   //alert('done');
+				   })
+				}catch(e){
+					alert("Error: e");
+				}
+			});
+			/*
+			$('.mybtn').on("click", function () {
+				myurl = this.attr("data-href");
+				alert("myurl = " + myurl);
+				try{
+					liff.sendMessages([
+					 {
+						 type: 'text',
+						 text: myurl
+					 }
+					])
+				   .then(() => {
+					   alert('done');
+				   })
+				}catch(e){
+					alert("Error: e");
+				}
+            });
+			*/
+			$('#ButtonSendMsg').on("click", function () {
+				try{
+					liff.sendMessages([
+					 {
+						 type: 'text',
+						 text: "http://google.com.tw"
+					 }
+					])
+				   .then(() => {
+					   alert('done');
+				   })
+				}catch(e){
+					alert("Error: e");
+				}
+            });
+			
+        });
+    </script>
+  </head>
+
+  <body style="border: 0; margin: 0;">
+    <div id="map" style="width: 100%; height: 1030px;"></div>
+	<div style="height:1%"></div>
+	<div>
+	    
+		<button class='mybtn1' style="width:33%;height:8%;font-size:40px;" data-href-1="[::text:]第一名">第一名</button>
+		<button class='mybtn1' style="width:33%;height:8%;font-size:40px;" data-href-1="[::text:]第二名">第二名</button>
+		<button class='mybtn1' style="width:33%;height:8%;font-size:40px;" data-href-1="[::text:]第二名">第三名</button>
+		
+	</div>
+	<div style="height:1%"></div>
+	<div>
+	    
+		<button class='mybtn1' style="width:100%;height:8%;font-size:40px;" data-href-1="[::text:]輪播顯示">輪播顯示</button>
+
+
+		
+	</div>
+	
+  </body>
+</html>
